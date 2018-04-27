@@ -10,47 +10,36 @@ namespace CrossPlatformKeepAlive
         private const int keepAliveRetryCountValue = 25;
         private const int keepAliveTimeValue = 36;
         private const int keepAliveIntervalValue = 47;
-        
-        private static readonly int[] keepAliveOptionNameConsts;
-        private static readonly Action<Socket, int, int> SetSocketOption;
+
+        private static readonly SocketOptionName[] keepAliveOptionNames;
+        private static readonly Func<Socket, SocketOptionName, int> GetSocketOption;
+        private static readonly Action<Socket, SocketOptionName, int> SetSocketOption;
 
         static TestSuite()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                keepAliveOptionNameConsts = new [] { 16, 3, 17 };
-                SetSocketOption = (socket, keepAliveOptionNameConst, keepAliveOptionValue) =>
-                {
-                    socket.SetSocketOption(SocketOptionLevel.Tcp, (SocketOptionName)keepAliveOptionNameConst, keepAliveOptionValue);
-                };
+                keepAliveOptionNames = new [] { (SocketOptionName)16, (SocketOptionName)3, (SocketOptionName)17 };
+                SetSocketOption = (socket, keepAliveOptionName, keepAliveOptionValue) =>
+                    socket.SetSocketOption(SocketOptionLevel.Tcp, keepAliveOptionName, keepAliveOptionValue);
+                GetSocketOption = (socket, keepAliveOptionName) =>
+                    (int)socket.GetSocketOption(SocketOptionLevel.Tcp, keepAliveOptionName);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             {
-                keepAliveOptionNameConsts = new [] { 0x6, 0x4, 0x5 };
-                SetSocketOption = (socket, keepAliveOptionNameConst, keepAliveOptionValue) => 
-                {
-                    int err = 0;
-                    unsafe
-                    {
-                        err = Interop.SetSockOptSysCall(socket.Handle, (int)SocketOptionLevel.Tcp, keepAliveOptionNameConst, (byte*)&keepAliveOptionValue, sizeof(int));
-                    }
-                    if (err == -1)
-                        throw new SocketException(err);
-                };
+                keepAliveOptionNames = new [] { (SocketOptionName)0x6, (SocketOptionName)0x4, (SocketOptionName)0x5 };
+                SetSocketOption = (socket, keepAliveOptionName, keepAliveOptionValue) =>
+                    Interop.SetSockOptSysCall(socket, keepAliveOptionName, keepAliveOptionValue);
+                GetSocketOption = (socket, keepAliveOptionName) =>
+                    Interop.GetSockOptSysCall(socket, keepAliveOptionName);
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             {
-                keepAliveOptionNameConsts = new [] { 0x102, 0x10, 0x101 };
-                SetSocketOption = (socket, keepAliveOptionNameConst, keepAliveOptionValue) => 
-                {
-                    int err = 0;
-                    unsafe
-                    {
-                        err = Interop.SetSockOptSysCall(socket.Handle, (int)SocketOptionLevel.Tcp, keepAliveOptionNameConst, (byte*)&keepAliveOptionValue, sizeof(int));
-                    }
-                    if (err == -1)
-                        throw new SocketException(err);
-                };
+                keepAliveOptionNames = new [] { (SocketOptionName)0x102, (SocketOptionName)0x10, (SocketOptionName)0x101 };
+                SetSocketOption = (socket, keepAliveOptionName, keepAliveOptionValue) =>
+                    Interop.SetSockOptSysCall(socket, keepAliveOptionName, keepAliveOptionValue);
+                GetSocketOption = (socket, keepAliveOptionName) =>
+                    Interop.GetSockOptSysCall(socket, keepAliveOptionName);
             }
         }
 
@@ -64,24 +53,30 @@ namespace CrossPlatformKeepAlive
         [Fact]
         public void SetKeepAliveRetryCount()
         {
-            SetSocketOption(tcp.Client, keepAliveOptionNameConsts[0], keepAliveRetryCountValue);
+            SetOption(keepAliveOptionNames[0], keepAliveRetryCountValue);
         }
 
         [Fact]
         public void SetKeepAliveTime()
         {
-            SetSocketOption(tcp.Client, keepAliveOptionNameConsts[1], keepAliveRetryCountValue);
+            SetOption(keepAliveOptionNames[1], keepAliveTimeValue);
         }
 
         [Fact]
         public void SetKeepAliveInterval()
         {
-            SetSocketOption(tcp.Client, keepAliveOptionNameConsts[2], keepAliveRetryCountValue);
+            SetOption(keepAliveOptionNames[2], keepAliveIntervalValue);
         }
 
         public void Dispose()
         {
             tcp?.Close();
+        }
+
+        private void SetOption(SocketOptionName keepAliveOptionName, int keepAliveOptionValue)
+        {
+            SetSocketOption(tcp.Client, keepAliveOptionName, keepAliveOptionValue);
+            Assert.Equal(keepAliveOptionValue, GetSocketOption(tcp.Client, keepAliveOptionName));
         }
     }
 }
