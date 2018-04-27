@@ -32,7 +32,7 @@ namespace CrossPlatformKeepAlive
                     int err = 0;
                     unsafe
                     {
-                        err = Interop.SetSockOptSysCallLinux(socket.Handle, (int)SocketOptionLevel.Tcp, keepAliveOptionNameConst, (byte*)&keepAliveOptionValue, sizeof(int));
+                        err = Interop.SetSockOptSysCall(socket.Handle, (int)SocketOptionLevel.Tcp, keepAliveOptionNameConst, (byte*)&keepAliveOptionValue, sizeof(int));
                     }
                     if (err == -1)
                         throw new SocketException(err);
@@ -46,7 +46,7 @@ namespace CrossPlatformKeepAlive
                     int err = 0;
                     unsafe
                     {
-                        err = Interop.SetSockOptSysCallOsx(socket.Handle, (int)SocketOptionLevel.Tcp, keepAliveOptionNameConst, (byte*)&keepAliveOptionValue, sizeof(int));
+                        err = Interop.SetSockOptSysCall(socket.Handle, (int)SocketOptionLevel.Tcp, keepAliveOptionNameConst, (byte*)&keepAliveOptionValue, sizeof(int));
                     }
                     if (err == -1)
                         throw new SocketException(err);
