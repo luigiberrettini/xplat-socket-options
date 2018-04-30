@@ -6,22 +6,22 @@ namespace CrossPlatformKeepAlive
 {
     internal static class Interop
     {
-        internal static int GetSockOptSysCall(Socket socket, SocketOptionName optionName)
+        internal static int GetSockOptSysCall(Socket socket, SocketOptionLevel optionLevel, SocketOptionName optionName)
         {
             int optionValue;
             int optionLen = sizeof(int);
             unsafe
             {
-                ThrowOnError(GetSockOptSysCall(socket.Handle, (int)SocketOptionLevel.Tcp, (int)optionName, (byte*)&optionValue, &optionLen));
+                ThrowOnError(GetSockOptSysCall(socket.Handle, (int)optionLevel, (int)optionName, (byte*)&optionValue, &optionLen));
             }
             return optionValue;
         }
         
-        internal static void SetSockOptSysCall (Socket socket, SocketOptionName optionName, int optionValue)
+        internal static void SetSockOptSysCall(Socket socket, SocketOptionLevel optionLevel, SocketOptionName optionName, int optionValue)
         {
             unsafe
             {
-                ThrowOnError(SetSockOptSysCall(socket.Handle, (int)SocketOptionLevel.Tcp, (int)optionName, (byte*)&optionValue, sizeof(int)));
+                ThrowOnError(SetSockOptSysCall(socket.Handle, (int)optionLevel, (int)optionName, (byte*)&optionValue, sizeof(int)));
             }
         }
         
@@ -34,7 +34,7 @@ namespace CrossPlatformKeepAlive
         private static void ThrowOnError(int error)
         {
             if (error != 0)
-                throw new SocketException(error);
+                throw new ApplicationException($"Socket option syscall error value: '{error}'");
         }
     }
 }
