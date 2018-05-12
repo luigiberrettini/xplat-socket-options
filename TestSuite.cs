@@ -11,6 +11,9 @@ namespace CrossPlatformSocketOptions
         private const int keepAliveTimeValue = 36;
         private const int keepAliveIntervalValue = 47;
 
+        private static readonly bool isWindows;
+        private static readonly bool isBelowWin10V1703;
+        private static readonly bool isBelowWin10V1709;
         private static readonly SocketOptionName[] optionNames;
         private static readonly Func<Socket, SocketOptionLevel, SocketOptionName, int> GetSocketOption;
         private static readonly Action<Socket, SocketOptionLevel, SocketOptionName, int> SetSocketOption;
@@ -19,6 +22,11 @@ namespace CrossPlatformSocketOptions
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
+                var version = Environment.OSVersion.Version;
+                isWindows = true;
+                isBelowWin10V1703 = version.Major < 10 || version.Major == 10 && version.Build < 15063;
+                isBelowWin10V1709 = version.Major < 10 || version.Major == 10 && version.Build < 16299;
+
                 optionNames = new [] { (SocketOptionName)0, (SocketOptionName)16, (SocketOptionName)3, (SocketOptionName)17 };
                 SetSocketOption = (socket, optionLevel, optionName, optionValue) =>
                     socket.SetSocketOption(optionLevel, optionName, optionValue);
@@ -64,7 +72,6 @@ namespace CrossPlatformSocketOptions
         [Fact]
         public void DisableReuseAddress()
         {
-            Assert.Equal(0, (int)tcp.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress));
             tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
             Assert.Equal(0, (int)tcp.Client.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress));
         }
@@ -72,16 +79,15 @@ namespace CrossPlatformSocketOptions
         [Fact]
         public void DisableReusePort()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (isWindows)
                 return;
-
-            CheckAndSetOption(SocketOptionLevel.Socket, optionNames[0], 0, 0);
+            SetOption(SocketOptionLevel.Socket, optionNames[0], 0);
         }
 
         [Fact]
         public void SetKeepAliveRetryCount()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (isWindows && isBelowWin10V1703)
                 return;
             SetOption(SocketOptionLevel.Tcp, optionNames[1], keepAliveRetryCountValue);
         }
@@ -89,13 +95,15 @@ namespace CrossPlatformSocketOptions
         [Fact]
         public void SetKeepAliveTime()
         {
+            if (isWindows && isBelowWin10V1709)
+                return;
             SetOption(SocketOptionLevel.Tcp, optionNames[2], keepAliveTimeValue);
         }
 
         [Fact]
         public void SetKeepAliveInterval()
         {
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (isWindows && isBelowWin10V1709)
                 return;
             SetOption(SocketOptionLevel.Tcp, optionNames[3], keepAliveIntervalValue);
         }
@@ -103,12 +111,6 @@ namespace CrossPlatformSocketOptions
         public void Dispose()
         {
             tcp?.Close();
-        }
-
-        private void CheckAndSetOption(SocketOptionLevel optionLevel, SocketOptionName optionName, int oldOptionValue, int newOptionValue)
-        {
-            //Assert.Equal(oldOptionValue, GetSocketOption(tcp.Client, optionLevel, optionName));
-            SetOption(optionLevel, optionName, newOptionValue);
         }
 
         private void SetOption(SocketOptionLevel optionLevel, SocketOptionName optionName, int optionValue)
