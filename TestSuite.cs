@@ -3,7 +3,7 @@ using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using Xunit;
 
-namespace CrossPlatformKeepAlive
+namespace CrossPlatformSocketOptions
 {
     public class TestSuite : IDisposable
     {

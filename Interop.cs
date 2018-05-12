@@ -2,7 +2,7 @@ using System;
 using System.Net.Sockets;
 using System.Runtime.InteropServices;
 
-namespace CrossPlatformKeepAlive
+namespace CrossPlatformSocketOptions
 {
     internal static class Interop
     {
