@@ -61,7 +61,7 @@ namespace CrossPlatformSocketOptions
         [Fact]
         public void EnableExclusivAddressUse()
         {
-            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            if (!isWindows)
                 return;
 
             Assert.False(tcp.Client.ExclusiveAddressUse);
@@ -82,6 +82,19 @@ namespace CrossPlatformSocketOptions
             if (isWindows)
                 return;
             SetOption(SocketOptionLevel.Socket, optionNames[0], 0);
+        }
+
+        [Fact]
+        public void Socket_KeepAlive_Disabled_By_Default()
+        {
+            Assert.False(IsKeepAliveEnabled(tcp.Client), "Keep-alive was turned on by default!");
+        }
+
+        [Fact]
+        public void Socket_KeepAlive_Enable_Success()
+        {
+            tcp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            Assert.True(IsKeepAliveEnabled(tcp.Client));
         }
 
         [Fact]
@@ -117,6 +130,11 @@ namespace CrossPlatformSocketOptions
         {
             SetSocketOption(tcp.Client, optionLevel, optionName, optionValue);
             Assert.Equal(optionValue, GetSocketOption(tcp.Client, optionLevel, optionName));
+        }
+
+        private bool IsKeepAliveEnabled(Socket socket)
+        {
+            return (int)socket.GetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive) != 0;
         }
     }
 }
